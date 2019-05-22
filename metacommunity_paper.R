@@ -1,6 +1,6 @@
 #### Vincent Fugere, 2018 - 2019
 #### LEAP 2017 experiment
-#### Code to examine effect of dispersal and pH heterogenety on zooplankton metacommunities
+#### Code to examine effect of dispersal and pH heterogeneity on zooplankton metacommunities
 
 rm(list=ls())
 
@@ -12,9 +12,11 @@ library(mgcv)
 library(itsadug)
 library(magrittr)
 library(vegan)
+library(readxl)
+library(chron)
 
 cols<-c('firebrick2','gold2','forestgreen','darkblue')
-treat <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017treatments.csv')
+treat <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017treatments.csv', stringsAsFactors = F)
 to.rm <- c('S1','S2','S3','S4','LAKE','P2C1','P2C2','P2C3','P2C4') #useless for this project
 
 #relevant experimental period (week 0 to week 7)
@@ -104,29 +106,86 @@ zoo %<>% filter(date %in% date.range) %>% arrange(date,pond)
 zoo$week <- rep(0:7,each=96)
 zoo %<>% select(pond, week, Clad.perL:zd)
 
-zoops_com <- filter(zoops_com, date == '27.07.17', pond %!in% to.rm) 
+zoops_com <- filter(zoops_com, date == '27.07.17', pond %!in% to.rm) %>% 
+  select(pond, Chaoborus:Ceriodaphnia)
+
+## metabolism
+
+metab <- read_xlsx('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017_metabolism.xlsx') %>%
+  unite(pond, sub.array, pond.number, sep='', remove=T) %>%
+  unite(date, month.day1, date.day1, sep='_') %>%
+  filter(pond %!in% to.rm) %>% filter(pond != 'NA')
+
+metab$date <- as.Date(metab$date, format = '%m_%d')
+metab$date <- as.numeric(format(metab$date, '%j'))
+metab %<>% filter(date %in% date.range) %>% arrange(date,pond)
+metab$week <- rep(c(0,2,4,6,7),each=96)
+
+#calculating the duration (in hours) of nightime and daytime periods
+time1 <- strftime(metab$sunset.day1, format = "%H:%M:%S", tz='UTC')
+time2 <- strftime(metab$sunrise.day2, format = "%H:%M:%S", tz='UTC')
+time3 <- strftime(metab$sunset.day2, format = "%H:%M:%S", tz='UTC')
+day1 <- rep('01/01/2019', length(time1))
+day2 <- rep('01/02/2019', length(time1))
+x1 <- chron(dates = day1, times = time1)
+x2 <- chron(dates = day2, times = time2)
+x3 <- chron(dates = day2, times = time3)
+period1 <- as.numeric(difftime(x2, x1, unit="hours"))
+period2 <- as.numeric(difftime(x3, x2, unit="hours"))
+metab$period1 <- period1
+metab$period2 <- period2
+rm(time1,time2,time3,day1,day2,x1,x2,x3,period1,period2)
+
+#converting mg to DO surplus or deficit (compared to mg at 100% sat) 
+#to account for large temp changes during the night. ER and NEP computed from these.
+metab$DO.mg.1 <- metab$DO.mg.1-(metab$DO.mg.1*(100/metab$DO.prctsat.1)) #term in parenthesis is mg/L at 100% sat
+metab$DO.mg.2 <- metab$DO.mg.2-(metab$DO.mg.2*(100/metab$DO.prctsat.2)) #term in parenthesis is mg/L at 100% sat
+metab$DO.mg.3 <- metab$DO.mg.3-(metab$DO.mg.3*(100/metab$DO.prctsat.3)) #term in parenthesis is mg/L at 100% sat
+
+#adding nightime respiration and daytime NEP, both in mg O2 / L / hr
+metab$ER <- with(metab, (DO.mg.2-DO.mg.1)/period1)
+metab$NEP <- with(metab, (DO.mg.3-DO.mg.2)/period2)
+
+# hist(metab$ER) #some positive values
+# hist(metab$NEP) #some negative values
+
+#excel sheet suggests data for 06-20 (week 2) might be garbage due to a probe problem
+metab <- filter(metab, week != 2)
+
+# hist(metab$ER)
+# hist(metab$NEP)
+# #yes that fixes it!
+
+metab <- select(metab, pond, week, ER, NEP)
+
+############################################################
+## MISSING FOR PAPER: PERIPHYTON, NUTRIENTS, TRANSPARENCY ##
+############################################################
 
 ## binding and adding treatments
 
-phyto$pH <- treat$pH.local[match(phyto$pond,treat$pond.ID)]
-phyto$disp <- treat$dispersal[match(phyto$pond,treat$pond.ID)]
-phyto$str <- treat$pH.var[match(phyto$pond,treat$pond.ID)]
-phyto$pH <- factor(phyto$pH)
-phyto$pond <- as.factor(phyto$pond)
+data <- left_join(depth, ysi, by = c('pond','week')) %>% 
+  left_join(phyto, by = c('pond','week')) %>% 
+  left_join(zoo, by = c('pond','week')) %>% 
+  left_join(metab, by = c('pond','week'))
 
+data <- treat %>% select(pond.ID:pH.var) %>%
+  right_join(data, by = c('pond.ID' = 'pond'))
+
+data <- select(data, pond.ID,week,MC.ID:pH.var,depth:NEP)
+
+colnames(data)[c(1,3,4,5,7,8)] <- c('pond','MC','disp','pH.trt','MC.pH','str')
 
 #### Optional filters ####
 
-#getting rid of pre-treatment samples and Phase II data points
-
 #getting rid of two ponds which were accidently acidified to a lower pH than intended
 
-#getting rid of homogeneous metacommunities for now for simplicty (fix later)
+#getting rid of homogeneous metacommunities for now for simplicity (fix later)
+
+#### Exploring pH, disp, and effects on local communities ####
 
 #### Question 1: does dispersal & and local pH 
-#zoo
 
-zoo <- zoo %>% filter(week < 7, str == 'heterogeneous')
 zoo$stime <- zoo$week
 
 # m8 <- bam(zd_l ~ s(stime, k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
