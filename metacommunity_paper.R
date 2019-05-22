@@ -17,21 +17,21 @@ cols<-c('firebrick2','gold2','forestgreen','darkblue')
 treat <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017treatments.csv')
 to.rm <- c('S1','S2','S3','S4','LAKE','P2C1','P2C2','P2C3','P2C4') #useless for this project
 
-days <- seq(from=157,by=7,length.out = 8)
-weeks <- data.frame('day' = c(days,days+1,days+2,days+3),
-                    'week' = rep(0:7,4))
-rm(days)
+#relevant experimental period (week 0 to week 7)
+date.range <- 157:208
 
 #### Load and format data ####
 
 ## depth
 
 depth <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/depth.csv') %>%
-  select(month:depth) %>% unite(pond, sub.array, pond.number, sep='') %>% unite(date, month, day, sep='_')
+  select(month:depth) %>% unite(pond, sub.array, pond.number, sep='') %>%
+  unite(date, month, day, sep='_') %>% filter(pond %!in% to.rm)
 depth$date <- as.Date(depth$date, format = '%m_%d')
-depth$date <- format(depth$date, '%j')
-depth %<>% left_join()
-depth$pond <- as.factor(depth$pond)
+depth$date <- as.numeric(format(depth$date, '%j'))
+depth %<>% filter(date %in% date.range) %>% arrange(date,pond)
+depth$week <- rep(0:7,each=96)
+depth %<>% select(pond,week,depth)
 
 ## YSI data
 
@@ -39,21 +39,11 @@ ysi <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/d
   select(month:ph.after) %>% unite(pond, sub.array, pond.number, sep='') %>% unite(date, month, day, sep='_') %>%
   filter(pond %!in% to.rm) %>% filter(pond != 'NA')
 ysi$date <- as.Date(ysi$date, format = '%m_%d')
-ysi$date <- format(ysi$date, '%j')
-#format(as.Date('2017-06-06'), '%j') #157 is first day/week on which both pH and biological variables measured. Call this day 1
-ysi$date <- as.numeric(ysi$date) - 157
-ysi$pond <- as.factor(ysi$pond)
-
-ysi2 <- select(ysi, pond, date, ph.after) %>% filter(ph.after != 'NA') %>% mutate(date = date+0.1) %>% rename(ph = ph.after)
-ysi <- ysi %>% select(pond,date,ph.before) %>% mutate(date = date-0.1) %>% rename(ph = ph.before)
-ysi <- bind_rows(ysi,ysi2) %>% filter(date > -5) %>% arrange(date)
-rm(ysi2)
-
-ysi.full <- ysi
-ysi <- ysi %>% filter(pond %!in% p2cs)
-
-ysi$pH.treat <- factor(treat$pH.local[match(ysi$pond,treat$pond.ID)])
-
+ysi %<>% filter(date != '2019-06-14')
+ysi$date <- as.numeric(format(ysi$date, '%j'))
+ysi %<>% filter(date %in% date.range) %>% arrange(date,pond)
+ysi$week <- rep(0:7,each=96)
+ysi %<>% select(pond, week, SPC:ph.after)
 
 ## phytoplankton
 
@@ -75,23 +65,13 @@ rm(tp0,tp1,tp2,tp3,tp4,tp5,tp6,tp7,tp8,tp9,tp10,tp11,tp12)
 
 colnames(phyto)[1:10] <- c('date','time1','time2','pond','greens','cyanos','diatoms','cryptos','ys','total')
 phyto <- phyto %>% unite(time, time1, time2, remove=T) %>% select(date:total) %>% select(-ys) %>%
-  filter(pond %!in% to.rm) %>% group_by(date, pond) %>% summarise_if(is.numeric, mean)
+  filter(pond %!in% to.rm) %>% group_by(date, pond) %>% filter(nchar(pond) == 2) %>%
+  summarise_if(is.numeric, mean) %>% ungroup
 phyto$date <- as.Date(phyto$date, format = '%d/%m/%Y')
-phyto$date <- format(phyto$date, '%j')
-phyto <- arrange(phyto, by = date)
-
-phyto <- phyto %>% filter(nchar(pond) == 2)
-phyto$week <- rep(c(0:10,12,16), each=96)
-
-phyto$pH <- treat$pH.local[match(phyto$pond,treat$pond.ID)]
-phyto$disp <- treat$dispersal[match(phyto$pond,treat$pond.ID)]
-phyto$str <- treat$pH.var[match(phyto$pond,treat$pond.ID)]
-phyto$pH <- factor(phyto$pH)
-phyto$pond <- as.factor(phyto$pond)
-
-#fixing the 1 zero value, which does not fit on a log plot - error on instrument is 0.1 ug, I add 0.01 ug
-phyto$total[which.min(phyto$total)] <- 0.01
-phyto$logchla <- log(phyto$total)
+phyto$date <- as.numeric(format(phyto$date, '%j'))
+phyto %<>% filter(date %in% date.range) %>% arrange(date,pond)
+phyto$week <- rep(0:7,each=96)
+phyto %<>% select(pond, week, greens:total)
 
 ## zooplankton
 
@@ -108,33 +88,32 @@ zoops_tot <- zoops_tot %>% rename('sample' = Date) %>%
   unite(date, day, month, year, sep='_') %>%
   rename('zd' = density.indperL)
 zoops_tot$date <- as.Date(zoops_tot$date, format = '%d_%m_%Y')
-zoops_tot$date <- format(zoops_tot$date, '%j')
 
 zoops_com <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zoops_community.csv', stringsAsFactors = F) 
-
 zoops2 <- zoops_com %>% filter(pond %!in% to.rm) %>%
   filter(pond != 'NA') %>%
   mutate('Clad.perL' = (Eubosmina.longispina + Diaphanosoma + Sida.crystallina + Chydorus.sphaericus + Daphnia.pulex + Simocephalus + Daphnia.ambigua + Ceriodaphnia)/2, 'Cop.perL' = Cyclops.scutifer/2) %>%
   select(pond,date,Clad.perL,Cop.perL,density) %>%
   rename('zd' = density)
 zoops2$date <- as.Date(zoops2$date, format = '%d.%m.%y')
-zoops2$date <- format(zoops2$date, '%j')
+zoo <- bind_rows(zoops_tot,zoops2)
+rm(zoops2, zoops_tot)
 
-zoo <- bind_rows(zoops_tot,zoops2) %>% arrange(date)
-rm(zoops2, zoops_tot)  
+zoo$date <- as.numeric(format(zoo$date, '%j'))
+zoo %<>% filter(date %in% date.range) %>% arrange(date,pond)
+zoo$week <- rep(0:7,each=96)
+zoo %<>% select(pond, week, Clad.perL:zd)
 
-zoo$week <- weeks$week[match(zoo$date,weeks$day)]
-rm(weeks)
-zoo$zd_l <- log1p(zoo$zd)
-zoo$log_clad <- log1p(zoo$Clad.perL)
-zoo$log_cop <- log1p(zoo$Cop.perL)
+zoops_com <- filter(zoops_com, date == '27.07.17', pond %!in% to.rm) 
 
-zoo$pH <- treat$pH.local[match(zoo$pond,treat$pond.ID)]
-zoo$disp <- treat$dispersal[match(zoo$pond,treat$pond.ID)]
-zoo$str <- treat$pH.var[match(zoo$pond,treat$pond.ID)]
+## binding and adding treatments
 
-zoo$pH <- factor(zoo$pH)
-zoo$pond <- as.factor(zoo$pond)
+phyto$pH <- treat$pH.local[match(phyto$pond,treat$pond.ID)]
+phyto$disp <- treat$dispersal[match(phyto$pond,treat$pond.ID)]
+phyto$str <- treat$pH.var[match(phyto$pond,treat$pond.ID)]
+phyto$pH <- factor(phyto$pH)
+phyto$pond <- as.factor(phyto$pond)
+
 
 #### Optional filters ####
 
