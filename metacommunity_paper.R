@@ -17,7 +17,43 @@ cols<-c('firebrick2','gold2','forestgreen','darkblue')
 treat <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017treatments.csv')
 to.rm <- c('S1','S2','S3','S4','LAKE','P2C1','P2C2','P2C3','P2C4') #useless for this project
 
-#### Load and format plankton data ####
+days <- seq(from=157,by=7,length.out = 8)
+weeks <- data.frame('day' = c(days,days+1,days+2,days+3),
+                    'week' = rep(0:7,4))
+rm(days)
+
+#### Load and format data ####
+
+## depth
+
+depth <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/depth.csv') %>%
+  select(month:depth) %>% unite(pond, sub.array, pond.number, sep='') %>% unite(date, month, day, sep='_')
+depth$date <- as.Date(depth$date, format = '%m_%d')
+depth$date <- format(depth$date, '%j')
+depth %<>% left_join()
+depth$pond <- as.factor(depth$pond)
+
+## YSI data
+
+ysi <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/ysi.csv') %>%
+  select(month:ph.after) %>% unite(pond, sub.array, pond.number, sep='') %>% unite(date, month, day, sep='_') %>%
+  filter(pond %!in% to.rm) %>% filter(pond != 'NA')
+ysi$date <- as.Date(ysi$date, format = '%m_%d')
+ysi$date <- format(ysi$date, '%j')
+#format(as.Date('2017-06-06'), '%j') #157 is first day/week on which both pH and biological variables measured. Call this day 1
+ysi$date <- as.numeric(ysi$date) - 157
+ysi$pond <- as.factor(ysi$pond)
+
+ysi2 <- select(ysi, pond, date, ph.after) %>% filter(ph.after != 'NA') %>% mutate(date = date+0.1) %>% rename(ph = ph.after)
+ysi <- ysi %>% select(pond,date,ph.before) %>% mutate(date = date-0.1) %>% rename(ph = ph.before)
+ysi <- bind_rows(ysi,ysi2) %>% filter(date > -5) %>% arrange(date)
+rm(ysi2)
+
+ysi.full <- ysi
+ysi <- ysi %>% filter(pond %!in% p2cs)
+
+ysi$pH.treat <- factor(treat$pH.local[match(ysi$pond,treat$pond.ID)])
+
 
 ## phytoplankton
 
@@ -41,6 +77,7 @@ colnames(phyto)[1:10] <- c('date','time1','time2','pond','greens','cyanos','diat
 phyto <- phyto %>% unite(time, time1, time2, remove=T) %>% select(date:total) %>% select(-ys) %>%
   filter(pond %!in% to.rm) %>% group_by(date, pond) %>% summarise_if(is.numeric, mean)
 phyto$date <- as.Date(phyto$date, format = '%d/%m/%Y')
+phyto$date <- format(phyto$date, '%j')
 phyto <- arrange(phyto, by = date)
 
 phyto <- phyto %>% filter(nchar(pond) == 2)
@@ -72,7 +109,6 @@ zoops_tot <- zoops_tot %>% rename('sample' = Date) %>%
   rename('zd' = density.indperL)
 zoops_tot$date <- as.Date(zoops_tot$date, format = '%d_%m_%Y')
 zoops_tot$date <- format(zoops_tot$date, '%j')
-zoops_tot$date <- as.numeric(zoops_tot$date) - 143
 
 zoops_com <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zoops_community.csv', stringsAsFactors = F) 
 
@@ -83,13 +119,9 @@ zoops2 <- zoops_com %>% filter(pond %!in% to.rm) %>%
   rename('zd' = density)
 zoops2$date <- as.Date(zoops2$date, format = '%d.%m.%y')
 zoops2$date <- format(zoops2$date, '%j')
-zoops2$date <- as.numeric(zoops2$date) - 143
 
 zoo <- bind_rows(zoops_tot,zoops2) %>% arrange(date)
 rm(zoops2, zoops_tot)  
-
-weeks <- data.frame('day' = c(16,23,30,37,44,51,58,65,72,79,86,100,126),
-                    'week' = c(0:10,12,16))
 
 zoo$week <- weeks$week[match(zoo$date,weeks$day)]
 rm(weeks)
@@ -106,7 +138,7 @@ zoo$pond <- as.factor(zoo$pond)
 
 #### Optional filters ####
 
-#getting rid of time zero and Phase II data points
+#getting rid of pre-treatment samples and Phase II data points
 
 #getting rid of two ponds which were accidently acidified to a lower pH than intended
 
