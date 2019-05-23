@@ -184,23 +184,125 @@ colnames(data)[c(1,3,4,5,7,8)] <- c('pond','MC','disp','pH.trt','MC.pH','str')
 
 #### Exploring pH, disp, and effects on local communities ####
 
-#### Question 1: does dispersal & and local pH 
+data$pH <- data$ph.after
+data$pH[1:96] <- data$ph.before[1:96]
+data <- select(data, -ph.before, -ph.after)
+data <- select(data, pond, week, pH, everything())
 
-zoo$stime <- zoo$week
+data <- data %>% mutate_at(vars(Clad.perL,Cop.perL,zd,greens,diatoms,total), list(log = ~log1p(.)))
 
-# m8 <- bam(zd_l ~ s(stime, k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
-# m9 <- bam(zd_l ~ pH + s(stime, by = pH, k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
-# m10 <- bam(zd_l ~ s(stime, by = disp, k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
-# m11 <- bam(zd_l ~ s(stime, by = str, k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
-# m12 <- bam(zd_l ~ pH*disp + s(stime, by = pH, k=7) + s(stime, by = disp, k=7) + s(stime, by = interaction(pH,disp), k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
-# m13 <- bam(zd_l ~ s(stime, by = pH, k=7) + s(stime, by = str, k=7) + s(stime, by = interaction(pH,str), k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
-# m14 <- bam(zd_l ~ s(stime, by = pH, k=7) + s(stime, by = disp, k=7) + s(stime, by = str, k=7) + s(stime, by = interaction(pH,disp,str), k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='ML')
-#
-#AIC(m8,m9,m10,m11,m12,m13,m14)
-#AIC(m8,m9,m10,m11,m12,m13,m14)$AIC - min(AIC(m8,m9,m10,m11,m12,m13,m14)$AIC)
+homo <- filter(data, str == 'homogeneous', week > 0)
+hete <- filter(data, str == 'heterogeneous', week > 0)
 
+colfunc <- colorRampPalette(cols)
+colfunc(100) -> cols.plot
 
-#### ####
+#####
+
+pdf('~/Desktop/explo.pdf',width=8.5,height=11,onefile = T)
+par(mfrow=c(2,1),cex=1)
+
+for(i in 10:27){
+  
+  real.var.name <- colnames(data)[i]
+  
+  tempdata <- homo[,c(1,2,3,5,6,i)] %>% drop_na %>% as.data.frame
+  colnames(tempdata)[6] <- 'y'
+  tempdata$disp <- as.factor(tempdata$disp)
+  tempdata$pH.trt <- as.factor(tempdata$pH.trt)
+  tempdata$pond <- as.factor(tempdata$pond)
+  # gam.homo <- bam(y ~ disp + s(week, k = 4) + s(pH, k = 4) + ti(week, pH, k=4) + s(week, by = disp, k=4) + s(week, pond, bs='fs',m=1,k=4), data=tempdata, method='fREML')
+  # summary(gam.homo)
+  tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
+  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,7),ylim=range(tempdata$y),ann=F,bty='l')
+  title(ylab=real.var.name)
+  title(xlab="weeks of acid treatment")
+  axis(2,lwd=0,lwd.ticks=1)
+  axis(1,lwd=0,lwd.ticks=1)
+  for(p in 1:48){
+    data.tmp <- subset(tempdata, pond == levels(tempdata$pond)[p])
+    points(y ~ week, type='l', data.tmp, pch=16, cex=0.5, lwd=0.2, col = alpha(cols.plot[data.tmp$ph.col.idx],0.5))
+  }
+  means <- aggregate(y ~ disp*pH.trt*week, tempdata, FUN = 'mean')
+  for(pH in 1:4){
+    for(d in 1:3){
+      data.tmp <- filter(means, disp == levels(means$disp)[d], pH.trt == levels(means$pH.trt)[pH])
+      plot.data <- as.data.frame(approx(x = data.tmp$week, y = data.tmp$y, n = 1000))
+      lines(y ~ x, plot.data, lwd=3, col = alpha(cols[pH],0.8), lty=c(1,2,3)[d])
+    }
+  }
+  rm(data.tmp,p,pH,d,plot.data)
+  title(main = 'homo', cex = 0.5)
+  # legend('topright',bty='n',legend = '(a)',inset = c(0,-0.05), cex =1.2)
+  # legend('bottomright',bty='n',legend = c('pH 8.5','pH 7','pH 5.5','pH 4'),pch=16,col=cols[4:1],y.intersp=1.2)
+  
+  tempdata <- hete[,c(1,2,3,5,6,i)] %>% drop_na %>% as.data.frame
+  colnames(tempdata)[6] <- 'y'
+  tempdata$disp <- as.factor(tempdata$disp)
+  tempdata$pH.trt <- as.factor(tempdata$pH.trt)
+  tempdata$pond <- as.factor(tempdata$pond)
+  tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
+  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,7),ylim=range(tempdata$y),ann=F,bty='l')
+  title(ylab=real.var.name)
+  title(xlab="weeks of acid treatment")
+  axis(2,lwd=0,lwd.ticks=1)
+  axis(1,lwd=0,lwd.ticks=1)
+  for(p in 1:48){
+    data.tmp <- subset(tempdata, pond == levels(tempdata$pond)[p])
+    points(y ~ week, type='l', data.tmp, pch=16, cex=0.5, lwd=0.2, col = alpha(cols.plot[data.tmp$ph.col.idx],0.5))
+  }
+  means <- aggregate(y ~ disp*pH.trt*week, tempdata, FUN = 'mean')
+  for(pH in 1:4){
+    for(d in 1:3){
+      data.tmp <- filter(means, disp == levels(means$disp)[d], pH.trt == levels(means$pH.trt)[pH])
+      plot.data <- as.data.frame(approx(x = data.tmp$week, y = data.tmp$y, n = 1000))
+      lines(y ~ x, plot.data, lwd=3, col = alpha(cols[pH],0.8), lty=c(1,2,3)[d])
+    }
+  }
+  rm(data.tmp,p,pH,d,plot.data)
+  title(main = 'hetero', cex = 0.5)
+}
+
+dev.off()
+
+#####
+
+pdf('~/Desktop/hists.pdf',width=8,height=10.5,pointsize = 8)
+par(mfrow=c(4,5),cex=1)
+for(i in 10:27){
+  hist(data[,i],main=NULL,xlab=colnames(data[i]),breaks=30)
+}
+dev.off()
+
+##### 
+# MODELS
+
+library(brms)
+
+homo <- mutate_at(homo, vars(pond,disp,pH.trt), list(f = ~as.factor(.)))
+hete <- mutate_at(hete, vars(pond,disp,pH.trt), list(f = ~as.factor(.)))
+
+dd <- homo
+dd$var <- dd$total_log
+
+#m1 <- brm(var ~ pH.trt_f * disp_f + (1|pond_f), dd, cores=4)
+
+m1 <- update(m1, newdata = dd)
+summary(m1)
+plot(m1)
+pp_check(m1)
+marginal_effects(m1) -> chla_homo
+
+#depth hetero
+m2 <- brm(var ~ pH.trt_f * disp_f + (1|pond_f), dd, cores=4)
+summary(m2)
+plot(m2)
+pp_check(m2)
+marginal_effects(m2)
+
+save(chla_hete,chla_homo,clad_hete,clad_homo,cop_hete,cop_homo,depth_hete,depth_homo,diatoms_hete,diatoms_homo,ER_hete,ER_homo,greens_hete,greens_homo,NEP_hete,NEP_homo,SPC_hete,SPC_homo,zd_hete,zd_homo, file = '~/Desktop/LMMs.RData')
+
+#####
 
 pdf('~/Desktop/Figure.pdf',width=9,height=9,pointsize = 8)
 
