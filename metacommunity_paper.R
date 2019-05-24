@@ -281,26 +281,26 @@ for(i in 10:27){
 homo <- mutate_at(homo, vars(pond,disp,pH.trt), list(f = ~as.factor(.)))
 hete <- mutate_at(hete, vars(pond,disp,pH.trt), list(f = ~as.factor(.)))
 
-dd <- homo
-dd$var <- dd$total_log
-
-#m1 <- brm(var ~ pH.trt_f * disp_f + (1|pond_f), dd, cores=4)
-
-m1 <- update(m1, newdata = dd)
-summary(m1)
-plot(m1)
-pp_check(m1)
-marginal_effects(m1) -> chla_homo
-
-#depth hetero
-m2 <- brm(var ~ pH.trt_f * disp_f + (1|pond_f), dd, cores=4)
-summary(m2)
-plot(m2)
-pp_check(m2)
-marginal_effects(m2)
-
-save(chla_hete,chla_homo,clad_hete,clad_homo,cop_hete,cop_homo,depth_hete,depth_homo,diatoms_hete,diatoms_homo,ER_hete,ER_homo,greens_hete,greens_homo,NEP_hete,NEP_homo,SPC_hete,SPC_homo,zd_hete,zd_homo, file = '~/Desktop/LMMs.RData')
-rm(dd,m1,means,plot,tempdata,i,real.var.name)
+# dd <- homo
+# dd$var <- dd$total_log
+# 
+# #m1 <- brm(var ~ pH.trt_f * disp_f + (1|pond_f), dd, cores=4)
+# 
+# m1 <- update(m1, newdata = dd)
+# summary(m1)
+# plot(m1)
+# pp_check(m1)
+# marginal_effects(m1) -> chla_homo
+# 
+# #depth hetero
+# m2 <- brm(var ~ pH.trt_f * disp_f + (1|pond_f), dd, cores=4)
+# summary(m2)
+# plot(m2)
+# pp_check(m2)
+# marginal_effects(m2)
+# 
+# save(chla_hete,chla_homo,clad_hete,clad_homo,cop_hete,cop_homo,depth_hete,depth_homo,diatoms_hete,diatoms_homo,ER_hete,ER_homo,greens_hete,greens_homo,NEP_hete,NEP_homo,SPC_hete,SPC_homo,zd_hete,zd_homo, file = '~/Desktop/LMMs.RData')
+# rm(dd,m1,means,plot,tempdata,i,real.var.name)
 
 #### zoops composition ####
 
@@ -312,14 +312,13 @@ com <- select(com, Eubosmina.longispina:Ceriodaphnia)
 row.names(com) <- trt.sub$pond
 
 dm <- vegdist(com,method = 'jaccard')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var+trt.sub$upstream)
 dm <- vegdist(com,method = 'bray')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var+trt.sub$upstream)
 dm <- vegdist(log1p(com),method = 'bray')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var+trt.sub$upstream)
 
-ordi <- metaMDS(log1p(com), distance = 'bray', k = 2, autotransform = FALSE, trymax = 500)
-
+ordi <- metaMDS(com, distance = 'bray', k = 2, autotransform = FALSE, trymax = 500)
 g<-ordi$points[,1:2]
 plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
 title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
@@ -329,18 +328,20 @@ axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
 points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
 label.subset <- ordi$species[,]
 text(label.subset, rownames(label.subset), cex = 0.5, col = alpha(1))
-legend('topright',bty='n',legend='Stress = 0.14')
+legend('topright',bty='n',legend=bquote('Stress ='~.(round(ordi$stress,2))))
 
-
+ordi <- metaMDS(com, distance = 'jaccard', k = 2, autotransform = FALSE, trymax = 500)
+g<-ordi$points[,1:2]
 plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
 title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
 axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
 title(ylab='NMDS dimension 2',cex.lab=1,line = 2.5)
 axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
 points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
+label.subset <- ordi$species[,]
+text(label.subset, rownames(label.subset), cex = 0.5, col = alpha(1))
+legend('topright',bty='n',legend=bquote('Stress ='~.(round(ordi$stress,2))))
 
-
-legend('topright',bty='n',legend='Stress = 0.13')
 
 
 #####
