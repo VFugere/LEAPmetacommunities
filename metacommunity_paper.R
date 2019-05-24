@@ -14,6 +14,7 @@ library(magrittr)
 library(vegan)
 library(readxl)
 library(chron)
+library(brms)
 
 cols<-c('firebrick2','gold2','forestgreen','darkblue')
 treat <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017treatments.csv', stringsAsFactors = F)
@@ -199,7 +200,7 @@ colfunc(100) -> cols.plot
 
 #####
 
-pdf('~/Desktop/explo.pdf',width=8.5,height=11,onefile = T)
+#pdf('~/Desktop/explo.pdf',width=8.5,height=11,onefile = T)
 par(mfrow=c(2,1),cex=1)
 
 for(i in 10:27){
@@ -263,21 +264,19 @@ for(i in 10:27){
   title(main = 'hetero', cex = 0.5)
 }
 
-dev.off()
+#dev.off()
 
 #####
 
-pdf('~/Desktop/hists.pdf',width=8,height=10.5,pointsize = 8)
+#pdf('~/Desktop/hists.pdf',width=8,height=10.5,pointsize = 8)
 par(mfrow=c(4,5),cex=1)
 for(i in 10:27){
   hist(data[,i],main=NULL,xlab=colnames(data[i]),breaks=30)
 }
-dev.off()
+#dev.off()
 
 ##### 
 # MODELS
-
-library(brms)
 
 homo <- mutate_at(homo, vars(pond,disp,pH.trt), list(f = ~as.factor(.)))
 hete <- mutate_at(hete, vars(pond,disp,pH.trt), list(f = ~as.factor(.)))
@@ -301,6 +300,48 @@ pp_check(m2)
 marginal_effects(m2)
 
 save(chla_hete,chla_homo,clad_hete,clad_homo,cop_hete,cop_homo,depth_hete,depth_homo,diatoms_hete,diatoms_homo,ER_hete,ER_homo,greens_hete,greens_homo,NEP_hete,NEP_homo,SPC_hete,SPC_homo,zd_hete,zd_homo, file = '~/Desktop/LMMs.RData')
+rm(dd,m1,means,plot,tempdata,i,real.var.name)
+
+#### zoops composition ####
+
+com <- zoops_com %>% left_join(treat, by = c('pond' = 'pond.ID')) %>%
+  mutate('zd' = rowSums(.[3:11])) %>%
+  filter(zd > 0)
+trt.sub <- select(com, pond, MC.ID:pH.var)
+com <- select(com, Eubosmina.longispina:Ceriodaphnia)
+row.names(com) <- trt.sub$pond
+
+dm <- vegdist(com,method = 'jaccard')
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
+dm <- vegdist(com,method = 'bray')
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
+dm <- vegdist(log1p(com),method = 'bray')
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
+
+ordi <- metaMDS(log1p(com), distance = 'bray', k = 2, autotransform = FALSE, trymax = 500)
+
+g<-ordi$points[,1:2]
+plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
+title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+title(ylab='NMDS dimension 2',cex.lab=1,line = 2.5)
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
+label.subset <- ordi$species[,]
+text(label.subset, rownames(label.subset), cex = 0.5, col = alpha(1))
+legend('topright',bty='n',legend='Stress = 0.14')
+
+
+plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
+title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+title(ylab='NMDS dimension 2',cex.lab=1,line = 2.5)
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
+
+
+legend('topright',bty='n',legend='Stress = 0.13')
+
 
 #####
 
@@ -377,16 +418,4 @@ zoo.last <- filter(zoo, week == 6)
 boxplot(log_cop~disp*pH,zoo.last,main='copepod')
 boxplot(log_clad~disp*pH,zoo.last,main='cladoceran')
 dev.off()
-
-#### -- ####
-
-zoops_com <- zoops_com %>% filter(date == '27.07.17', pond %!in% to.rm) %>% 
-  filter(abundance != 0)
-com <- zoops_com %>% select(Eubosmina.longispina:Ceriodaphnia) %>% as.matrix
-row.names(com) <- zoops_com$pond
-com.trt <- zoops_com %>% select(pond) %>% as.data.frame
-com.trt <- left_join(com.trt, treat, by = c('pond'='pond.ID')) %>% select(pond, MC.ID:pH.var )
-
-dm <- vegdist(log1p(com),method = 'bray')
-adonis(dm~com.trt$pH.local+com.trt$dispersal:com.trt$pH.var+com.trt$dispersal:com.trt$pH.var:com.trt$pH.local)
 
