@@ -95,7 +95,7 @@ zoops_tot$date <- as.Date(zoops_tot$date, format = '%d_%m_%Y')
 zoops_com <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zoops_community.csv', stringsAsFactors = F) 
 zoops2 <- zoops_com %>% filter(pond %!in% to.rm) %>%
   filter(pond != 'NA') %>%
-  mutate('Clad.perL' = (Eubosmina.longispina + Diaphanosoma + Sida.crystallina + Chydorus.sphaericus + Daphnia.pulex + Simocephalus + Daphnia.ambigua + Ceriodaphnia)/2, 'Cop.perL' = Cyclops.scutifer/2) %>%
+  mutate('Clad.perL' = (Bosmina.longispina + Diaphanosoma.sp + Sida.crystallina + Chydorus.sphaericus + Daphnia.pulex + Simocephalus.sp + Daphnia.ambigua + Ceriodaphnia.dubia)/2, 'Cop.perL' = Cyclops.scutifer/2) %>%
   select(pond,date,Clad.perL,Cop.perL,density) %>%
   rename('zd' = density)
 zoops2$date <- as.Date(zoops2$date, format = '%d.%m.%y')
@@ -108,7 +108,7 @@ zoo$week <- rep(0:7,each=96)
 zoo %<>% select(pond, week, Clad.perL:zd)
 
 zoops_com <- filter(zoops_com, date == '27.07.17', pond %!in% to.rm) %>% 
-  select(pond, Chaoborus:Ceriodaphnia)
+  select(pond, Chaoborus:Ceriodaphnia.dubia)
 
 ## metabolism
 
@@ -199,81 +199,81 @@ colfunc <- colorRampPalette(cols)
 colfunc(100) -> cols.plot
 
 #####
-
-#pdf('~/Desktop/explo.pdf',width=8.5,height=11,onefile = T)
-par(mfrow=c(2,1),cex=1)
-
-for(i in 10:27){
-  
-  real.var.name <- colnames(data)[i]
-  
-  tempdata <- homo[,c(1,2,3,5,6,i)] %>% drop_na %>% as.data.frame
-  colnames(tempdata)[6] <- 'y'
-  tempdata$disp <- as.factor(tempdata$disp)
-  tempdata$pH.trt <- as.factor(tempdata$pH.trt)
-  tempdata$pond <- as.factor(tempdata$pond)
-  # gam.homo <- bam(y ~ disp + s(week, k = 4) + s(pH, k = 4) + ti(week, pH, k=4) + s(week, by = disp, k=4) + s(week, pond, bs='fs',m=1,k=4), data=tempdata, method='fREML')
-  # summary(gam.homo)
-  tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
-  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,7),ylim=range(tempdata$y),ann=F,bty='l')
-  title(ylab=real.var.name)
-  title(xlab="weeks of acid treatment")
-  axis(2,lwd=0,lwd.ticks=1)
-  axis(1,lwd=0,lwd.ticks=1)
-  for(p in 1:48){
-    data.tmp <- subset(tempdata, pond == levels(tempdata$pond)[p])
-    points(y ~ week, type='l', data.tmp, pch=16, cex=0.5, lwd=0.2, col = alpha(cols.plot[data.tmp$ph.col.idx],0.5))
-  }
-  means <- aggregate(y ~ disp*pH.trt*week, tempdata, FUN = 'mean')
-  for(pH in 1:4){
-    for(d in 1:3){
-      data.tmp <- filter(means, disp == levels(means$disp)[d], pH.trt == levels(means$pH.trt)[pH])
-      plot.data <- as.data.frame(approx(x = data.tmp$week, y = data.tmp$y, n = 1000))
-      lines(y ~ x, plot.data, lwd=3, col = alpha(cols[pH],0.8), lty=c(1,2,3)[d])
-    }
-  }
-  rm(data.tmp,p,pH,d,plot.data)
-  title(main = 'homo', cex = 0.5)
-  # legend('topright',bty='n',legend = '(a)',inset = c(0,-0.05), cex =1.2)
-  # legend('bottomright',bty='n',legend = c('pH 8.5','pH 7','pH 5.5','pH 4'),pch=16,col=cols[4:1],y.intersp=1.2)
-  
-  tempdata <- hete[,c(1,2,3,5,6,i)] %>% drop_na %>% as.data.frame
-  colnames(tempdata)[6] <- 'y'
-  tempdata$disp <- as.factor(tempdata$disp)
-  tempdata$pH.trt <- as.factor(tempdata$pH.trt)
-  tempdata$pond <- as.factor(tempdata$pond)
-  tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
-  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,7),ylim=range(tempdata$y),ann=F,bty='l')
-  title(ylab=real.var.name)
-  title(xlab="weeks of acid treatment")
-  axis(2,lwd=0,lwd.ticks=1)
-  axis(1,lwd=0,lwd.ticks=1)
-  for(p in 1:48){
-    data.tmp <- subset(tempdata, pond == levels(tempdata$pond)[p])
-    points(y ~ week, type='l', data.tmp, pch=16, cex=0.5, lwd=0.2, col = alpha(cols.plot[data.tmp$ph.col.idx],0.5))
-  }
-  means <- aggregate(y ~ disp*pH.trt*week, tempdata, FUN = 'mean')
-  for(pH in 1:4){
-    for(d in 1:3){
-      data.tmp <- filter(means, disp == levels(means$disp)[d], pH.trt == levels(means$pH.trt)[pH])
-      plot.data <- as.data.frame(approx(x = data.tmp$week, y = data.tmp$y, n = 1000))
-      lines(y ~ x, plot.data, lwd=3, col = alpha(cols[pH],0.8), lty=c(1,2,3)[d])
-    }
-  }
-  rm(data.tmp,p,pH,d,plot.data)
-  title(main = 'hetero', cex = 0.5)
-}
-
-#dev.off()
+# 
+# #pdf('~/Desktop/explo.pdf',width=8.5,height=11,onefile = T)
+# par(mfrow=c(2,1),cex=1)
+# 
+# for(i in 10:27){
+#   
+#   real.var.name <- colnames(data)[i]
+#   
+#   tempdata <- homo[,c(1,2,3,5,6,i)] %>% drop_na %>% as.data.frame
+#   colnames(tempdata)[6] <- 'y'
+#   tempdata$disp <- as.factor(tempdata$disp)
+#   tempdata$pH.trt <- as.factor(tempdata$pH.trt)
+#   tempdata$pond <- as.factor(tempdata$pond)
+#   # gam.homo <- bam(y ~ disp + s(week, k = 4) + s(pH, k = 4) + ti(week, pH, k=4) + s(week, by = disp, k=4) + s(week, pond, bs='fs',m=1,k=4), data=tempdata, method='fREML')
+#   # summary(gam.homo)
+#   tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
+#   plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,7),ylim=range(tempdata$y),ann=F,bty='l')
+#   title(ylab=real.var.name)
+#   title(xlab="weeks of acid treatment")
+#   axis(2,lwd=0,lwd.ticks=1)
+#   axis(1,lwd=0,lwd.ticks=1)
+#   for(p in 1:48){
+#     data.tmp <- subset(tempdata, pond == levels(tempdata$pond)[p])
+#     points(y ~ week, type='l', data.tmp, pch=16, cex=0.5, lwd=0.2, col = alpha(cols.plot[data.tmp$ph.col.idx],0.5))
+#   }
+#   means <- aggregate(y ~ disp*pH.trt*week, tempdata, FUN = 'mean')
+#   for(pH in 1:4){
+#     for(d in 1:3){
+#       data.tmp <- filter(means, disp == levels(means$disp)[d], pH.trt == levels(means$pH.trt)[pH])
+#       plot.data <- as.data.frame(approx(x = data.tmp$week, y = data.tmp$y, n = 1000))
+#       lines(y ~ x, plot.data, lwd=3, col = alpha(cols[pH],0.8), lty=c(1,2,3)[d])
+#     }
+#   }
+#   rm(data.tmp,p,pH,d,plot.data)
+#   title(main = 'homo', cex = 0.5)
+#   # legend('topright',bty='n',legend = '(a)',inset = c(0,-0.05), cex =1.2)
+#   # legend('bottomright',bty='n',legend = c('pH 8.5','pH 7','pH 5.5','pH 4'),pch=16,col=cols[4:1],y.intersp=1.2)
+#   
+#   tempdata <- hete[,c(1,2,3,5,6,i)] %>% drop_na %>% as.data.frame
+#   colnames(tempdata)[6] <- 'y'
+#   tempdata$disp <- as.factor(tempdata$disp)
+#   tempdata$pH.trt <- as.factor(tempdata$pH.trt)
+#   tempdata$pond <- as.factor(tempdata$pond)
+#   tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
+#   plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,7),ylim=range(tempdata$y),ann=F,bty='l')
+#   title(ylab=real.var.name)
+#   title(xlab="weeks of acid treatment")
+#   axis(2,lwd=0,lwd.ticks=1)
+#   axis(1,lwd=0,lwd.ticks=1)
+#   for(p in 1:48){
+#     data.tmp <- subset(tempdata, pond == levels(tempdata$pond)[p])
+#     points(y ~ week, type='l', data.tmp, pch=16, cex=0.5, lwd=0.2, col = alpha(cols.plot[data.tmp$ph.col.idx],0.5))
+#   }
+#   means <- aggregate(y ~ disp*pH.trt*week, tempdata, FUN = 'mean')
+#   for(pH in 1:4){
+#     for(d in 1:3){
+#       data.tmp <- filter(means, disp == levels(means$disp)[d], pH.trt == levels(means$pH.trt)[pH])
+#       plot.data <- as.data.frame(approx(x = data.tmp$week, y = data.tmp$y, n = 1000))
+#       lines(y ~ x, plot.data, lwd=3, col = alpha(cols[pH],0.8), lty=c(1,2,3)[d])
+#     }
+#   }
+#   rm(data.tmp,p,pH,d,plot.data)
+#   title(main = 'hetero', cex = 0.5)
+# }
+# 
+# #dev.off()
 
 #####
 
-#pdf('~/Desktop/hists.pdf',width=8,height=10.5,pointsize = 8)
-par(mfrow=c(4,5),cex=1)
-for(i in 10:27){
-  hist(data[,i],main=NULL,xlab=colnames(data[i]),breaks=30)
-}
-#dev.off()
+# #pdf('~/Desktop/hists.pdf',width=8,height=10.5,pointsize = 8)
+# par(mfrow=c(4,5),cex=1)
+# for(i in 10:27){
+#   hist(data[,i],main=NULL,xlab=colnames(data[i]),breaks=30)
+# }
+# #dev.off()
 
 ##### 
 # MODELS
@@ -308,15 +308,15 @@ com <- zoops_com %>% left_join(treat, by = c('pond' = 'pond.ID')) %>%
   mutate('zd' = rowSums(.[3:11])) %>%
   filter(zd > 0)
 trt.sub <- select(com, pond, MC.ID:pH.var)
-com <- select(com, Eubosmina.longispina:Ceriodaphnia)
+com <- select(com, Bosmina.longispina:Ceriodaphnia.dubia)
 row.names(com) <- trt.sub$pond
 
 dm <- vegdist(com,method = 'jaccard')
 adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var+trt.sub$upstream)
 dm <- vegdist(com,method = 'bray')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var+trt.sub$upstream)
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
 dm <- vegdist(log1p(com),method = 'bray')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var+trt.sub$upstream)
+adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
 
 ordi <- metaMDS(com, distance = 'bray', k = 2, autotransform = FALSE, trymax = 500)
 g<-ordi$points[,1:2]
@@ -325,23 +325,14 @@ title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
 axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
 title(ylab='NMDS dimension 2',cex.lab=1,line = 2.5)
 axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+# pch.vec <- as.numeric(as.factor(trt.sub$dispersal))-1
+# pch.vec[trt.sub$pH.var == 'heterogeneous'] <- pch.vec[trt.sub$pH.var == 'heterogeneous'] + 15
+# points(g[,2] ~ g[,1],pch=pch.vec,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
 points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
-label.subset <- ordi$species[,]
-text(label.subset, rownames(label.subset), cex = 0.5, col = alpha(1))
+labels <- ordi$species[,]
+names <- rownames(labels) %>% str_replace('\\.',' ') %>%  make.italic
+text(labels, names, cex = 0.7, col = 1)
 legend('topright',bty='n',legend=bquote('Stress ='~.(round(ordi$stress,2))))
-
-ordi <- metaMDS(com, distance = 'jaccard', k = 2, autotransform = FALSE, trymax = 500)
-g<-ordi$points[,1:2]
-plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
-title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-title(ylab='NMDS dimension 2',cex.lab=1,line = 2.5)
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
-label.subset <- ordi$species[,]
-text(label.subset, rownames(label.subset), cex = 0.5, col = alpha(1))
-legend('topright',bty='n',legend=bquote('Stress ='~.(round(ordi$stress,2))))
-
 
 
 #####
