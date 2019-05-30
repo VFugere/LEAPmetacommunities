@@ -324,6 +324,8 @@ for(i in 1:96){
 
 stability <- filter(stability, str == 'heterogeneous')
 
+pdf('~/Desktop/stability.pdf',width=6,height = 4,onefile = T,pointsize = 8)
+
 boxplot(greens ~ disp * pH.trt, stability, ylab = 'greens')
 anova(lmer(greens ~ disp * pH.trt + (1|MC), data = stability))
 
@@ -341,6 +343,8 @@ anova(lmer(cop ~ disp * pH.trt + (1|MC), data = stability))
 
 boxplot(zoo ~ disp * pH.trt, stability, ylab = 'zoo')
 anova(lmer(zoo ~ disp * pH.trt + (1|MC), data = stability))
+
+dev.off()
 
 #### zoops composition ####
 
