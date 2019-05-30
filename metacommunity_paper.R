@@ -283,24 +283,64 @@ dev.off()
 
 homo <- mutate_at(homo, vars(pond,disp,pH.trt,MC), list(f = ~as.factor(.)))
 hete <- mutate_at(hete, vars(pond,disp,pH.trt,MC), list(f = ~as.factor(.)))
+data <- mutate_at(data, vars(pond,disp,pH.trt,MC,str), list(f = ~as.factor(.)))
 
 library(lme4)
-m1 <- brm(SPC ~ pH.trt_f * disp_f + (1|MC_f/pond_f), homo)
-summary(m1)
+m1 <- lmer(zd_log ~ pH.trt_f + disp_f + str_f + pH.trt_f:disp_f + disp_f:str_f + pH.trt_f:disp_f:str_f + (1|MC_f/pond_f), data)
+#summary(m1)
+anova(m1)
+plot(m1)
 
-dd <- homo
-dd$var <- dd$SPC
-
-m1 <- brm(var ~ pH.trt_f * disp_f + (1|MC_f/pond_f), dd, cores=4)
-
+dd <- hete
+dd$var <- dd$total_log
 m1 <- update(m1, newdata = dd)
+#m1 <- brm(var ~ pH.trt_f * disp_f + (1|MC_f/pond_f), dd, cores=4)
 summary(m1)
 plot(m1)
 pp_check(m1)
 marginal_effects(m1)
 
+m1 -> m.total
+
+#save(m.total,m.diatoms,m.greens,m.zd,m.cop,m.clad,m.NEP,m.ER, file = '~/Desktop/LMMs_6_hete.RData')
 # save(chla_hete,chla_homo,clad_hete,clad_homo,cop_hete,cop_homo,depth_hete,depth_homo,diatoms_hete,diatoms_homo,ER_hete,ER_homo,greens_hete,greens_homo,NEP_hete,NEP_homo,SPC_hete,SPC_homo,zd_hete,zd_homo, file = '~/Desktop/LMMs.RData')
 # rm(dd,m1,means,plot,tempdata,i,real.var.name)
+
+#### stability ####
+
+stability <- data.frame()
+
+for(i in 1:96){
+  tmp <- filter(data, pond == levels(data$pond_f)[i])
+  greens <- mean(tmp$greens_log)/sd(tmp$greens_log)
+  diatoms <- mean(tmp$diatoms_log)/sd(tmp$diatoms_log)
+  total <- mean(tmp$total_log)/sd(tmp$total_log)
+  clad <- mean(tmp$Clad.perL_log)/sd(tmp$Clad.perL_log)
+  cop <- mean(tmp$Cop.perL_log)/sd(tmp$Cop.perL_log)
+  zoo <- mean(tmp$zd_log)/sd(tmp$zd_log)
+  results <- data.frame(c(tmp[1,c('pond','MC','disp','pH.trt','str')],'greens'=greens,'diatoms'=diatoms,'total'=total,'clad'=clad,'cop'=cop,'zoo'=zoo))
+  stability <- rbind(stability,results)
+}
+
+stability <- filter(stability, str == 'heterogeneous')
+
+boxplot(greens ~ disp * pH.trt, stability, ylab = 'greens')
+anova(lmer(greens ~ disp * pH.trt + (1|MC), data = stability))
+
+boxplot(diatoms ~ disp * pH.trt, stability, ylab = 'diatoms')
+anova(lmer(diatoms ~ disp * pH.trt + (1|MC), data = stability))
+
+boxplot(total ~ disp * pH.trt, stability, ylab = 'total')
+anova(lmer(total ~ disp * pH.trt + (1|MC), data = stability))
+
+boxplot(clad ~ disp * pH.trt, stability, ylab = 'clad')
+anova(lmer(clad ~ disp * pH.trt + (1|MC), data = stability))
+
+boxplot(cop ~ disp * pH.trt, stability, ylab = 'cop')
+anova(lmer(cop ~ disp * pH.trt + (1|MC), data = stability))
+
+boxplot(zoo ~ disp * pH.trt, stability, ylab = 'zoo')
+anova(lmer(zoo ~ disp * pH.trt + (1|MC), data = stability))
 
 #### zoops composition ####
 
