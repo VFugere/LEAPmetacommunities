@@ -78,7 +78,7 @@ phyto %<>% select(pond, week, greens:total)
 
 ## zooplankton
 
-zoops_tot <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zoops.csv', stringsAsFactors = F)
+zoops_tot <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zooplankton/total_counts_undergrads.csv', stringsAsFactors = F)
 zoops_tot$Chidorus[is.na(zoops_tot$Chidorus)] <- 0
 zoops_tot <- zoops_tot %>% rename('sample' = Date) %>%
   filter(Pond %!in% to.rm) %>%
@@ -92,12 +92,15 @@ zoops_tot <- zoops_tot %>% rename('sample' = Date) %>%
   rename('zd' = density.indperL)
 zoops_tot$date <- as.Date(zoops_tot$date, format = '%d_%m_%Y')
 
-zoops_com <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zoops_community.csv', stringsAsFactors = F) 
+zoops_com <- read_xlsx('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zooplankton/community_composition_Lynne.xlsx') %>% 
+  select(pond:density.indperL) %>% as.data.frame
+zoops_com[is.na(zoops_com)] <- 0
 zoops2 <- zoops_com %>% filter(pond %!in% to.rm) %>%
   filter(pond != 'NA') %>%
-  mutate('Clad.perL' = (Bosmina.longispina + Diaphanosoma.sp + Sida.crystallina + Chydorus.sphaericus + Daphnia.pulex + Simocephalus.sp + Daphnia.ambigua + Ceriodaphnia.dubia)/2, 'Cop.perL' = Cyclops.scutifer/2) %>%
-  select(pond,date,Clad.perL,Cop.perL,density) %>%
-  rename('zd' = density)
+  mutate('Clad.perL' = Cladocerans/2, 'Cop.perL' = Copepods/2) %>%
+  select(pond,date,Clad.perL,Cop.perL,density.indperL) %>%
+  rename('zd' = density.indperL) %>% 
+  filter(date != '08.06.17')
 zoops2$date <- as.Date(zoops2$date, format = '%d.%m.%y')
 zoo <- bind_rows(zoops_tot,zoops2)
 rm(zoops2, zoops_tot)
@@ -108,7 +111,7 @@ zoo$week <- rep(0:7,each=96)
 zoo %<>% select(pond, week, Clad.perL:zd)
 
 zoops_com <- filter(zoops_com, date == '27.07.17', pond %!in% to.rm) %>% 
-  select(pond, Chaoborus:Ceriodaphnia.dubia)
+  select(pond, `Bosmina longirostris`:copepodids)
 
 ## metabolism
 
@@ -192,7 +195,7 @@ data <- select(data, pond, week, pH, everything())
 
 data <- data %>% mutate_at(vars(Clad.perL,Cop.perL,zd,greens,diatoms,total), list(log = ~log1p(.)))
 
-data <- filter(data, week < 7)
+#data <- filter(data, week < 7)
 
 homo <- filter(data, str == 'homogeneous', week > 0)
 hete <- filter(data, str == 'heterogeneous', week > 0)
@@ -217,7 +220,7 @@ for(i in 10:27){
   # gam.homo <- bam(y ~ disp + s(week, k = 4) + s(pH, k = 4) + ti(week, pH, k=4) + s(week, by = disp, k=4) + s(week, pond, bs='fs',m=1,k=4), data=tempdata, method='fREML')
   # summary(gam.homo)
   tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
-  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,6),ylim=range(tempdata$y),ann=F,bty='l')
+  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(0,7),ylim=range(tempdata$y),ann=F,bty='l')
   title(ylab=real.var.name)
   title(xlab="weeks of acid treatment")
   axis(2,lwd=0,lwd.ticks=1)
@@ -245,7 +248,7 @@ for(i in 10:27){
   tempdata$pH.trt <- as.factor(tempdata$pH.trt)
   tempdata$pond <- as.factor(tempdata$pond)
   tempdata$ph.col.idx <- round(rescale(tempdata$pH, c(1,100)))
-  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(1,6),ylim=range(tempdata$y),ann=F,bty='l')
+  plot(y~week,tempdata,type='n',yaxt='n',xaxt='n',xlim=c(0,7),ylim=range(tempdata$y),ann=F,bty='l')
   title(ylab=real.var.name)
   title(xlab="weeks of acid treatment")
   axis(2,lwd=0,lwd.ticks=1)
@@ -285,21 +288,21 @@ homo <- mutate_at(homo, vars(pond,disp,pH.trt,MC), list(f = ~as.factor(.)))
 hete <- mutate_at(hete, vars(pond,disp,pH.trt,MC), list(f = ~as.factor(.)))
 data <- mutate_at(data, vars(pond,disp,pH.trt,MC,str), list(f = ~as.factor(.)))
 
-# library(lme4)
-# m1 <- lmer(zd_log ~ pH.trt_f + disp_f + str_f + pH.trt_f:disp_f + disp_f:str_f + pH.trt_f:disp_f:str_f + (1|MC_f/pond_f), data)
-# #summary(m1)
-# anova(m1)
-# plot(m1)
-# 
-# dd <- hete
-# dd$var <- dd$total_log
-# m1 <- update(m1, newdata = dd)
-# #m1 <- brm(var ~ pH.trt_f * disp_f + (1|MC_f/pond_f), dd, cores=4)
-# summary(m1)
-# plot(m1)
-# pp_check(m1)
-# marginal_effects(m1)
-# 
+library(lme4)
+m1 <- lmer(zd_log ~ pH.trt_f + disp_f + str_f + pH.trt_f:disp_f + disp_f:str_f + pH.trt_f:disp_f:str_f + (1|MC_f/pond_f), data)
+summary(m1)
+anova(m1)
+plot(m1)
+
+dd <- hete
+dd$var <- dd$total_log
+m1 <- update(m1, newdata = dd)
+#m1 <- brm(var ~ pH.trt_f * disp_f + (1|MC_f/pond_f), dd, cores=4)
+summary(m1)
+plot(m1)
+pp_check(m1)
+marginal_effects(m1)
+
 # m1 -> m.total
 # 
 #save(m.total,m.diatoms,m.greens,m.zd,m.cop,m.clad,m.NEP,m.ER, file = '~/Desktop/LMMs_6_hete.RData')
@@ -350,9 +353,10 @@ dev.off()
 
 com <- zoops_com %>% left_join(treat, by = c('pond' = 'pond.ID')) %>%
   mutate('zd' = rowSums(.[3:11])) %>%
-  filter(zd > 0)
+  filter(zd > 0) %>% 
+  filter(pH.var == 'heterogeneous')
 trt.sub <- select(com, pond, MC.ID:pH.var)
-com <- select(com, Bosmina.longispina:Ceriodaphnia.dubia)
+com <- select(com, `Bosmina longirostris`:copepodids)
 row.names(com) <- trt.sub$pond
 
 dm <- vegdist(com,method = 'jaccard')
@@ -365,95 +369,98 @@ adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
 ordi <- metaMDS(com, distance = 'bray', k = 2, autotransform = FALSE, trymax = 500)
 g<-ordi$points[,1:2]
 
+trt.sub <- cbind(trt.sub,g)
+boxplot(MDS1~dispersal*pH.local,trt.sub)
+boxplot(MDS2~dispersal*pH.local,trt.sub)
+with(trt.sub, table(pH.local,dispersal))
+
+par(mfrow=c(1,2))
+zoo.last <- filter(zoo, week == 6)
+boxplot(log_cop~disp*pH,zoo.last,main='copepod')
+boxplot(log_clad~disp*pH,zoo.last,main='cladoceran')
+
 pdf('~/Desktop/nmds_plot.pdf',width = 5,height = 5,pointsize = 12)
 plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
 title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
 axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
 title(ylab='NMDS dimension 2',cex.lab=1,line = 2.5)
 axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-# pch.vec <- as.numeric(as.factor(trt.sub$dispersal))-1
-# pch.vec[trt.sub$pH.var == 'heterogeneous'] <- pch.vec[trt.sub$pH.var == 'heterogeneous'] + 15
-# points(g[,2] ~ g[,1],pch=pch.vec,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
-points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
+pch.vec <- as.numeric(as.factor(trt.sub$dispersal))-1
+pch.vec[trt.sub$pH.var == 'heterogeneous'] <- pch.vec[trt.sub$pH.var == 'heterogeneous'] + 15
+points(g[,2] ~ g[,1],pch=pch.vec,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
+points(g[,2] ~ g[,1],pch=c(15,16,17)[as.numeric(as.factor(trt.sub$dispersal))],col=cols[as.numeric(as.factor(trt.sub$pH.local))])
 labels <- ordi$species[,]
 names <- rownames(labels) %>% str_replace('\\.',' ') %>%  make.italic
 text(labels, names, cex = 0.7, col = 1)
 legend('topright',bty='n',legend=bquote('Stress ='~.(round(ordi$stress,2))))
 dev.off()
 
-#####
+##### gamms ####
 
-pdf('~/Desktop/Figure.pdf',width=9,height=9,pointsize = 8)
+pdf('~/Desktop/hete.pdf',width=9,height=9,pointsize = 8)
 
 par(mfrow=c(4,3),cex=1)
 col2 <- c('#1b9e77','#d95f02','#7570b3')
 
-gam.zoo.disp.tot <- bam(zd_l ~ pH*disp + s(stime, by = pH, k=7) + s(stime, by = disp, k=7) + s(stime, by = interaction(pH,disp), k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='fREML')
-gam.zoo.disp.clad <- bam(log_clad ~ pH*disp + s(stime, by = pH, k=7) + s(stime, by = disp, k=7) + s(stime, by = interaction(pH,disp), k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='fREML')
-gam.zoo.disp.cop <- bam(log_cop ~ pH*disp + s(stime, by = pH, k=7) + s(stime, by = disp, k=7) + s(stime, by = interaction(pH,disp), k=7) + s(stime, pond, bs='re',m=1,k=5), data=zoo, method='fREML')
+zoo <- hete
+zoo$stime <- scale(zoo$week)
+
+gam.zoo.disp.tot <- bam(zd_log ~ pH.trt_f*disp_f + s(stime, by = pH.trt_f, k=7) + s(stime, by = disp_f, k=7) + s(stime, by = interaction(pH.trt_f,disp_f), k=7) + s(stime, pond_f, bs='re',m=1,k=5), data=zoo, method='fREML')
+gam.zoo.disp.clad <- bam(Clad.perL_log ~ pH.trt_f*disp_f + s(stime, by = pH.trt_f, k=7) + s(stime, by = disp_f, k=7) + s(stime, by = interaction(pH.trt_f,disp_f), k=7) + s(stime, pond_f, bs='re',m=1,k=5), data=zoo, method='fREML')
+gam.zoo.disp.cop <- bam(Cop.perL_log ~ pH.trt_f*disp_f + s(stime, by = pH.trt_f, k=7) + s(stime, by = disp_f, k=7) + s(stime, by = interaction(pH.trt_f,disp_f), k=7) + s(stime, pond_f, bs='re',m=1,k=5), data=zoo, method='fREML')
 
 #pH 8.5
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='8.5',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 8.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='8.5',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='8.5',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='8.5',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 8.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='8.5',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='8.5',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 legend('bottomleft',bty='n',legend = c('no dispersal','stepping stone','global dispersal'),pch=16,col=col2,y.intersp=1)
 
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='8.5',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 8.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='8.5',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='8.5',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='8.5',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 8.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='8.5',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='8.5',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='8.5',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 8.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='8.5',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='8.5',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='8.5',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 8.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='8.5',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='8.5',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
 
 #pH 7
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='7',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 7',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='7',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='7',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='7',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 7',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='7',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='7',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='7',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 7',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='7',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='7',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='7',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 7',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='7',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='7',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='7',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 7',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='7',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='7',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='7',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 7',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='7',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='7',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
 #pH 5.5
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='5.5',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 5.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='5.5',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='5.5',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='5.5',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 5.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='5.5',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='5.5',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='5.5',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 5.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='5.5',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='5.5',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='5.5',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 5.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='5.5',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='5.5',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='5.5',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 5.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='5.5',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='5.5',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='5.5',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 5.5',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='5.5',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='5.5',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
 #pH 4
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='4',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 4',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='4',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH='4',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='4',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(crustacean density)'),main='pH 4',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='4',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.tot, view="stime", cond=list(pH.trt_f='4',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='4',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 4',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='4',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH='4',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='4',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(cladoceran density)'),main='pH 4',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='4',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.clad, view="stime", cond=list(pH.trt_f='4',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='4',disp='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 4',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='4',disp='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
-plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH='4',disp='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='4',disp_f='N'), col=col2[1], rm.ranef=T, hide.label = T,xlab='weeks',ylab=expression(log[e]~'1+(copepod density)'),main='pH 4',rug=F,bty='l',legend_plot_all = F, h0=NA,ylim=c(-1,5))
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='4',disp_f='L'), col=col2[2], rm.ranef=T, add=T, rug=F)
+plot_smooth(gam.zoo.disp.cop, view="stime", cond=list(pH.trt_f='4',disp_f='G'), col=col2[3], rm.ranef=T, add=T, rug=F)
 
 dev.off()
-
-#### ####
-
-pdf('~/Desktop/boxplot.pdf',width=10,height=4,pointsize = 7.5)
-par(mfrow=c(1,2))
-zoo.last <- filter(zoo, week == 6)
-boxplot(log_cop~disp*pH,zoo.last,main='copepod')
-boxplot(log_clad~disp*pH,zoo.last,main='cladoceran')
-dev.off()
-
