@@ -285,23 +285,23 @@ homo <- mutate_at(homo, vars(pond,disp,pH.trt,MC), list(f = ~as.factor(.)))
 hete <- mutate_at(hete, vars(pond,disp,pH.trt,MC), list(f = ~as.factor(.)))
 data <- mutate_at(data, vars(pond,disp,pH.trt,MC,str), list(f = ~as.factor(.)))
 
-library(lme4)
-m1 <- lmer(zd_log ~ pH.trt_f + disp_f + str_f + pH.trt_f:disp_f + disp_f:str_f + pH.trt_f:disp_f:str_f + (1|MC_f/pond_f), data)
-#summary(m1)
-anova(m1)
-plot(m1)
-
-dd <- hete
-dd$var <- dd$total_log
-m1 <- update(m1, newdata = dd)
-#m1 <- brm(var ~ pH.trt_f * disp_f + (1|MC_f/pond_f), dd, cores=4)
-summary(m1)
-plot(m1)
-pp_check(m1)
-marginal_effects(m1)
-
-m1 -> m.total
-
+# library(lme4)
+# m1 <- lmer(zd_log ~ pH.trt_f + disp_f + str_f + pH.trt_f:disp_f + disp_f:str_f + pH.trt_f:disp_f:str_f + (1|MC_f/pond_f), data)
+# #summary(m1)
+# anova(m1)
+# plot(m1)
+# 
+# dd <- hete
+# dd$var <- dd$total_log
+# m1 <- update(m1, newdata = dd)
+# #m1 <- brm(var ~ pH.trt_f * disp_f + (1|MC_f/pond_f), dd, cores=4)
+# summary(m1)
+# plot(m1)
+# pp_check(m1)
+# marginal_effects(m1)
+# 
+# m1 -> m.total
+# 
 #save(m.total,m.diatoms,m.greens,m.zd,m.cop,m.clad,m.NEP,m.ER, file = '~/Desktop/LMMs_6_hete.RData')
 # save(chla_hete,chla_homo,clad_hete,clad_homo,cop_hete,cop_homo,depth_hete,depth_homo,diatoms_hete,diatoms_homo,ER_hete,ER_homo,greens_hete,greens_homo,NEP_hete,NEP_homo,SPC_hete,SPC_homo,zd_hete,zd_homo, file = '~/Desktop/LMMs.RData')
 # rm(dd,m1,means,plot,tempdata,i,real.var.name)
@@ -364,6 +364,8 @@ adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
 
 ordi <- metaMDS(com, distance = 'bray', k = 2, autotransform = FALSE, trymax = 500)
 g<-ordi$points[,1:2]
+
+pdf('~/Desktop/nmds_plot.pdf',width = 5,height = 5,pointsize = 12)
 plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
 title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
 axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
@@ -377,7 +379,7 @@ labels <- ordi$species[,]
 names <- rownames(labels) %>% str_replace('\\.',' ') %>%  make.italic
 text(labels, names, cex = 0.7, col = 1)
 legend('topright',bty='n',legend=bquote('Stress ='~.(round(ordi$stress,2))))
-
+dev.off()
 
 #####
 
