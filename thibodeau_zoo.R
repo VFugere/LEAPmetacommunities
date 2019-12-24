@@ -18,18 +18,13 @@ ggplot(data = zoops, aes(x = d, y = logdens)) + geom_line(aes(color = Taxon, lty
 zoops_com <- read_excel('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/Thibodeau data/zoops.xls') %>%
   filter(day == 35) %>% select(-Date) %>% filter(Taxon != 'Total')
 
-zoops_com$site <- paste0('bag',1:24)
+zoops_com$site <- rep(paste0('bag',1:9),7)
 colnames(zoops_com) <- tolower(colnames(zoops_com))
 
-treat <- select(zoops_com, site, treatment)
-com <- zoops_com %>% select(taxon,dens) %>% spread(key=taxon, value=dens, fill=0, drop=F)
+treat <- select(zoops_com[1:9,], site, treatment)
+com <- zoops_com %>% select(-day,-biomass.ug.l, -treatment) %>%
+  spread(key=taxon, value=abundance.nb.l, drop=F) %>%
 
-
-com <- zoops_com %>% left_join(treat, by = c('pond' = 'pond.ID')) %>%
-  mutate('zd' = rowSums(.[3:11])) %>%
-  filter(zd > 0) %>% 
-  filter(pH.var == 'heterogeneous')
-trt.sub <- select(com, pond, MC.ID:pH.var)
 com <- select(com, `Bosmina longirostris`:copepodids)
 row.names(com) <- trt.sub$pond
 
