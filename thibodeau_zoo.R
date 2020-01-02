@@ -1,6 +1,7 @@
 library(tidyverse)
 library(readxl)
 library(magrittr)
+library(vegan)
 
 zoops <- read_excel('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/Thibodeau data/zoops.xls')
 zoops %<>% group_by(Taxon, Treatment, Date) %>%
@@ -23,48 +24,37 @@ colnames(zoops_com) <- tolower(colnames(zoops_com))
 
 treat <- select(zoops_com[1:9,], site, treatment)
 com <- zoops_com %>% select(-day,-biomass.ug.l, -treatment) %>%
-  spread(key=taxon, value=abundance.nb.l, drop=F) %>%
+  spread(key=taxon, value=abundance.nb.l)
 
-com <- select(com, `Bosmina longirostris`:copepodids)
-row.names(com) <- trt.sub$pond
+com <- select(com, Bosmina:Nauplii) %>% as.matrix
+row.names(com) <- treat$site
 
 dm <- vegdist(com,method = 'jaccard')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var+trt.sub$upstream)
 dm <- vegdist(com,method = 'bray')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
 dm <- vegdist(log1p(com),method = 'bray')
-adonis(dm~trt.sub$pH.local*trt.sub$dispersal*trt.sub$pH.var)
+adonis(dm~treat$treatment)
 
-ordi <- metaMDS(com, distance = 'bray', k = 2, autotransform = FALSE, trymax = 500)
+ordi <- metaMDS(com, distance = 'jaccard', binary=T, k = 2, autotransform = T, trymax = 500)
 g<-ordi$points[,1:2]
 
-trt.sub <- cbind(trt.sub,g)
-boxplot(MDS1~dispersal*pH.local,trt.sub)
-boxplot(MDS2~dispersal*pH.local,trt.sub)
-with(trt.sub, table(pH.local,dispersal))
+treat <- cbind(treat,g)
+boxplot(MDS1~treatment,treat)
+boxplot(MDS2~treatment,treat)
 
-par(mfrow=c(1,2))
-zoo.last <- filter(zoo, week == 6)
-boxplot(log_cop~disp*pH,zoo.last,main='copepod')
-boxplot(log_clad~disp*pH,zoo.last,main='cladoceran')
-
-pdf('~/Desktop/nmds_plot.pdf',width = 5,height = 5,pointsize = 12)
+cols<-c('firebrick2','gold2','forestgreen','darkblue')
+cols <- cols[c(4,3,2)]
+#pdf('~/Desktop/nmds_plot.pdf',width = 5,height = 5,pointsize = 12)
 plot(g[,2] ~ g[,1], type = "n",yaxt='n',xaxt='n',ann=F)
 title(xlab='NMDS dimension 1',cex.lab=1,line = 2.5)
 axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
 title(ylab='NMDS dimension 2',cex.lab=1,line = 2.5)
 axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-pch.vec <- as.numeric(as.factor(trt.sub$dispersal))-1
-pch.vec[trt.sub$pH.var == 'heterogeneous'] <- pch.vec[trt.sub$pH.var == 'heterogeneous'] + 15
-points(g[,2] ~ g[,1],pch=pch.vec,col=cols[as.numeric(as.factor(trt.sub$pH.local))])
-points(g[,2] ~ g[,1],pch=c(15,16,17)[as.numeric(as.factor(trt.sub$dispersal))],col=cols[as.numeric(as.factor(trt.sub$pH.local))])
+points(g[,2] ~ g[,1],pch=16,col=cols[as.numeric(as.factor(treat$treatment))])
 labels <- ordi$species[,]
-names <- rownames(labels) %>% str_replace('\\.',' ') %>%  make.italic
+names <- rownames(labels)
 text(labels, names, cex = 0.7, col = 1)
 legend('topright',bty='n',legend=bquote('Stress ='~.(round(ordi$stress,2))))
-dev.off()
-
-
+#dev.off()
 
 
 #### relationship between chl. a and biovolume ####
