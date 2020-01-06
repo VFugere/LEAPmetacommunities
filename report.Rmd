@@ -1,0 +1,33 @@
+---
+title: "LEAP 2017 metacommunities"
+author: "Vincent Fugere"
+date: "January 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+### Introduction  ###
+
+Phase 1 of the LEAP 2017 experiment is an experiment in itself, testing whether dispersal in metacommunities of 4 ponds can buffer local communities against local environmental degradation (acidification). Previous tests of the spatial insurance hypothesis with plankton communities in mesocosms have shown positive effects of dispersal on communities facing pertubation, whereby communities with immigration were less impacted than isolated communities without immigration. Examples of such experiments include Thompson et al. (2015) _J. Anim. Ecol._ and Limberger et al. (2019) _Ecol. Lett._. In these experiments, the dispersal treatment included an inoculum that pooled organisms from many local lakes, i.e. the experimenters sampled many lakes in the study region, mixed all samples in a container, and then used this mixture to inoculate "ponds with dispersal" intermittently. Control ponds received no such inoculum. So basically, filling mesocosms with water originating from many lakes produces communities that are more resistant to disturbances than mesososms filled with water from a single lake. In a sense, this could be considered an effect of both dispersal (removing all barriers to dispersal within a landscape) and diversity (increasing the size of the species pool and thus the mean local diversity of communities). I understand that this is part of the spatial insurance hypothesis, but perhaps landscapes with a higher mean local diversity are more resilient irrespective of the presence of dispersal among the local communities that they contain. Andy, am I missing something?
+
+In our experiment, we filled all ponds/metacommunities with the same species pool. We assume that the initial diversity of all local communities is equivalent. Then, we only manipulate dispersal within metacommunities, such that the only difference between no vs. local vs. global dispersal is the movement of individuals. The fact that we manipulate the spatial structure of dispersal (local vs global), not only its presence, is also novel. Our objective is to determine whether a 1% weekly dispersal event can mitigate some of the negative effects of acidification on zooplankton communities. In this report, I analyze our recently-obtained zooplankton composition data for LEAP 2017, and combine this with previously-published data from a lake mesocosm experiment done by a student from Bea's lab.
+
+### Datasets ###
+
+- Zooplankton community composition data from Thibodeau et al. (2016) _Proc B._. This is an acification experiment done on the floating dock on Lac Hertel. The phytoplankton response has been analyzed thoroughly but the zooplankton composition data has not been analyzed. We have data from 9 in-lake mesocosms: 3 served as controls, 3 were temporarily acidified to a pH of 5 (pulse perturbation) with a single acidification treatment, and 3 were maintained at a pH of 5 over several weeks with regular titrations (press perturbation).
+
+- LEAP 2017, Phase 1, before 'lethal acidification' to a pH of 3 in Phase 2. We have ~ 8 weeks of data during which weekly dispersal and pH treatments were applied. 96 ponds were arrayed into 4-pond metacommunities varying in their mean pH, stress heterogeneity (gradient of 4 pH vs. all 4 ponds maintained at the same pH), presence vs. absence of dispersal, and dispersal mode (local vs. global). Local dispersal in this context would represent a landscape in which downstream polluted lakes receive immigrants from upstream pristine lakes. Global dispersal provides equal dispersal probability among all lakes within a region. Homogeneous metacommunities in which all ponds have the same pH serve as controls to test for the effect of dispersal per se, in a homogeneous landscape. You can access a drawing of the design [here](https://www.dropbox.com/s/eknyap3z2fxlat7/LEAP%202017%20-%20design.pdf?dl=0). The response variables are:
+
+  1. Fluoroprobe: biomass of browns, greens, and total chlorophyll. weekly: 8 measurements per pond.
+  2. Zoo abundance: total abundance of copepods and cladocerans. weekly: 8 measurements per pond.
+  3. Zoo composition: species-level abundance at the end of the experiment. 1 measurement per pond.
+  4. Some physico-chemical parameters and estimates of ecosystem metabolism. 3-8 measurements per pond. 
+
+Dispersal is predicted to have different effects in homogeneous vs. heterogeneous metacommunities. Morever, these two types of metacommunities differ in the number of replicates we have for each dispersal treatment. Because we only included a single homogeneous metacommunity of 4 ponds at each pH level, we only have one replicate metacommunity per pH*dispersal treatment combination for homogeneous metacommunities. In contrast, for heterogeneous metacommunities, we have 4 replicate metacommunities for each dispersal treatment, i.e. 16 ponds per dispersal treatment. For these reasons, I often analyze homogeneous and heteregeneous metacommunities separately. Our predictions are mostly for heterogeneous metacommunities, such that homogeneous metacommunities can be seen as a form of control treatment.
+
+### Predictions ###
+
+1. sxasxa
