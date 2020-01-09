@@ -1,4 +1,4 @@
-#### Vincent Fugere, 2018 - 2019
+#### Vincent Fugere, 2018 - 2020
 #### LEAP 2017 experiment
 #### Code to examine effect of dispersal and pH heterogeneity on zooplankton metacommunities
 
@@ -42,7 +42,7 @@ ysi <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/d
   select(month:ph.after) %>% unite(pond, sub.array, pond.number, sep='') %>% unite(date, month, day, sep='_') %>%
   filter(pond %!in% to.rm) %>% filter(pond != 'NA')
 ysi$date <- as.Date(ysi$date, format = '%m_%d')
-ysi %<>% filter(date != '2019-06-14')
+ysi %<>% filter(date != '2020-06-14')
 ysi$date <- as.numeric(format(ysi$date, '%j'))
 ysi %<>% filter(date %in% date.range) %>% arrange(date,pond)
 ysi$week <- rep(0:7,each=96)
@@ -186,7 +186,7 @@ colnames(data)[c(1,3,4,5,7,8)] <- c('pond','MC','disp','pH.trt','MC.pH','str')
 
 #getting rid of homogeneous metacommunities for now for simplicity (fix later)
 
-#### Exploring pH, disp, and effects on local communities ####
+#adding measured pH
 
 data$pH <- data$ph.after
 data$pH[1:96] <- data$ph.before[1:96]
@@ -194,6 +194,10 @@ data <- select(data, -ph.before, -ph.after)
 data <- select(data, pond, week, pH, everything())
 
 data <- data %>% mutate_at(vars(Clad.perL,Cop.perL,zd,greens,diatoms,total), list(log = ~log1p(.)))
+
+#end of data formatting
+
+#### Exploring pH, disp, and effects on local communities ####
 
 #data <- filter(data, week < 7)
 
