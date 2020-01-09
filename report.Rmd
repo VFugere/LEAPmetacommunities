@@ -83,3 +83,10 @@ boxplot(chyd_daph_diaphan~treatment,thibodeau,ylab='% chyr+daph+diaph')
 par(mfrow=c(1,1))
 ```
 
+```{r}
+source(here::here('./LEAP_data_format.R'))
+```
+
+Lets now do a similar analysis with the LEAP data, only including isolated ponds from metacommunities without dispersal. This shows the effect of pH in the absence of dispersal. Again, we look at density, diversity, and composition.
+
+
