@@ -24,6 +24,46 @@ source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
 source('thibodeau_zoo.R')
 source('LEAP_data_format.R')
 
+#### 1. impact of acidification on diversity and CC, without any effect of dispersal.
+
+pdf('~/Desktop/effect_of_pH.pdf',width=8.5 ,height = 11, pointsize = 12, onefile = T)
+
+#thibodeau
+
+par(mfrow=c(3,2),cex=0.7,mar=c(4,4,0.5,0.5))
+boxplot(density~treatment,thibodeau,ylab='total density')
+boxplot(richness~treatment,thibodeau,ylab='richness')
+boxplot(hill~treatment,thibodeau,ylab=expression(e^Shannon))
+boxplot(Nauplii~treatment,thibodeau,ylab='% nauplii')
+boxplot(bosm_cerio~treatment,thibodeau,ylab='% bosm+cerio')
+boxplot(chyd_daph_diaphan~treatment,thibodeau,ylab='% chyr+daph+diaph')
+par(mfrow=c(1,1))
+
+#LEAP, end of Phase 1 only, no dispersal only
+
+to.keep <- filter(treat, dispersal == 'N') %>% select(pond.ID,pH.local) %>% as.data.frame
+leap <- zoops_com %>% filter(pond %in% to.keep$pond.ID) %>% left_join(to.keep, c('pond' = "pond.ID"))
+empty.columns <- names(leap[2:15])[colSums(leap[,2:15]) == 0]
+leap <- leap %>% select(-empty.columns)
+leap.com <- leap %>% select(`Bosmina longirostris`:copepodids)
+
+leap$density <- apply(leap.com, 1, 'sum')/2
+leap$richness <- specnumber(leap.com)
+leap$hill <- exp(diversity(leap.com, index='shannon'))
+
+par(mfrow=c(5,3),cex=0.7,mar=c(4,4,0.5,0.5))
+boxplot(density~pH.local,leap,ylab='total density',xlab='pH')
+boxplot(richness~pH.local,leap,ylab='richness',xlab='pH')
+boxplot(hill~pH.local,leap,ylab=expression(e^Shannon),xlab='pH')
+for(i in 2:11){
+  sub <- leap[,c(i,12)]
+  species <- names(sub)[1]
+  boxplot(log1p(sub[,1])~sub[,2],ylab=species,xlab='pH')
+}
+par(mfrow=c(1,1))
+
+dev.off()
+
 #### Exploring pH, disp, and effects on local communities ####
 
 #data <- filter(data, week < 7)
