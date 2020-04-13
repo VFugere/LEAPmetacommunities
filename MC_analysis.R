@@ -24,7 +24,9 @@ source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
 source('thibodeau_zoo.R')
 source('LEAP_data_format.R')
 
-#### 1. impact of acidification on diversity and CC, without any effect of dispersal.
+#   ==Local scale==
+   
+#   Does acidification influence zoo density, diversity, composition, and stability (CV of local density in time)?
 
 pdf('~/Desktop/effect_of_pH.pdf',width=8.5 ,height = 11, pointsize = 12, onefile = T)
 
@@ -63,6 +65,22 @@ for(i in 2:11){
 par(mfrow=c(1,1))
 
 dev.off()
+
+
+#   Does dispersal, in itself, influence zoo density, diversity, composition, and stability?
+   
+#   In acid ponds, does dispersal/immigration from high pH ponds prevent negative impact of acidification on zoo density, diversity, composition, and stability?
+
+   
+#   ==Metacommunity scale==
+#   
+#   In the absence of dispersal, does habitat heterogeneity increase beta diversity and spatial biomass CV?
+#   
+#   In homogeneous landscapes, does dispersal reduce beta diversity?
+#   
+#   In heterogeneous landscapes, does dispersal 
+
+
 
 #### Exploring pH, disp, and effects on local communities ####
 
