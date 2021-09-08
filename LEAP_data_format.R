@@ -2,35 +2,38 @@
 #### LEAP 2017 experiment
 #### Code to format data, to be used in Rmd file
 
-# rm(list=ls())
-# 
-# library(tidyverse)
-# library(scales)
-# source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
-# library(scales)
-# library(mgcv)
-# library(itsadug)
-# library(magrittr)
-# library(vegan)
-# library(readxl)
-# library(chron)
-# library(brms)
+rm(list=ls())
+
+library(tidyverse)
+library(scales)
+source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
+library(scales)
+library(mgcv)
+library(itsadug)
+library(magrittr)
+library(vegan)
+library(readxl)
+library(chron)
+library(brms)
 
 cols<-c('firebrick2','gold2','forestgreen','darkblue')
-treat <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017treatments.csv', stringsAsFactors = F)
+treat <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/LEAP2017treatments.csv', stringsAsFactors = F)
 to.rm <- c('S1','S2','S3','S4','LAKE','P2C1','P2C2','P2C3','P2C4') #useless for this project
 
 #relevant experimental period (week 0 to week 7)
+phase1.dates <- as.Date(c('06-06-2017','07-27-2017'),'%m-%d-%Y')
+phase1.dates.julian <- as.numeric(format(phase1.dates, '%j'))
 date.range <- 157:208
+rm(phase1.dates.julian,phase1.dates)
 
 #### Load and format data ####
 
 ## depth
 
-depth <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/depth.csv') %>%
+depth <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/depth.csv') %>%
   select(month:depth) %>% unite(pond, sub.array, pond.number, sep='') %>%
   unite(date, month, day, sep='_') %>% filter(pond %!in% to.rm)
-depth$date <- as.Date(depth$date, format = '%m_%d')
+depth$date <- depth$date %>% paste0(.,'_17') %>% as.Date(., format = '%m_%d_%y')
 depth$date <- as.numeric(format(depth$date, '%j'))
 depth %<>% filter(date %in% date.range) %>% arrange(date,pond)
 depth$week <- rep(0:7,each=96)
@@ -38,11 +41,11 @@ depth %<>% select(pond,week,depth)
 
 ## YSI data
 
-ysi <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/ysi.csv') %>%
+ysi <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/ysi.csv') %>%
   select(month:ph.after) %>% unite(pond, sub.array, pond.number, sep='') %>% unite(date, month, day, sep='_') %>%
   filter(pond %!in% to.rm) %>% filter(pond != 'NA')
-ysi$date <- as.Date(ysi$date, format = '%m_%d')
-ysi %<>% filter(date != '2020-06-14')
+ysi$date <- ysi$date %>% paste0(.,'_17') %>% as.Date(., format = '%m_%d_%y')
+ysi %<>% filter(date != '2017-06-14')
 ysi$date <- as.numeric(format(ysi$date, '%j'))
 ysi %<>% filter(date %in% date.range) %>% arrange(date,pond)
 ysi$week <- rep(0:7,each=96)
@@ -50,19 +53,19 @@ ysi %<>% select(pond, week, SPC:ph.after)
 
 ## phytoplankton
 
-tp0 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jun07.txt', skip=2, stringsAsFactors = F)
-tp1 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jun14.txt', skip=2, stringsAsFactors = F)
-tp2 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jun21.txt', skip=2, stringsAsFactors = F)
-tp3 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jun28.txt', skip=2, stringsAsFactors = F)
-tp4 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jul05.txt', skip=2, stringsAsFactors = F)
-tp5 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jul12.txt', skip=2, stringsAsFactors = F)
-tp6 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jul19.txt', skip=2, stringsAsFactors = F)
-tp7 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Jul26.txt', skip=2, stringsAsFactors = F)
-tp8 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Aug02.txt', skip=2, stringsAsFactors = F)
-tp9 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Aug09.txt', skip=2, stringsAsFactors = F)
-tp10 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Aug16.txt', skip=2, stringsAsFactors = F)
-tp11 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Aug30.txt', skip=2, stringsAsFactors = F)
-tp12 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/fluoroprobe/Sep25.txt', skip=2, stringsAsFactors = F)
+tp0 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jun07.txt', skip=2, stringsAsFactors = F)
+tp1 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jun14.txt', skip=2, stringsAsFactors = F)
+tp2 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jun21.txt', skip=2, stringsAsFactors = F)
+tp3 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jun28.txt', skip=2, stringsAsFactors = F)
+tp4 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jul05.txt', skip=2, stringsAsFactors = F)
+tp5 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jul12.txt', skip=2, stringsAsFactors = F)
+tp6 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jul19.txt', skip=2, stringsAsFactors = F)
+tp7 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Jul26.txt', skip=2, stringsAsFactors = F)
+tp8 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Aug02.txt', skip=2, stringsAsFactors = F)
+tp9 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Aug09.txt', skip=2, stringsAsFactors = F)
+tp10 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Aug16.txt', skip=2, stringsAsFactors = F)
+tp11 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Aug30.txt', skip=2, stringsAsFactors = F)
+tp12 <- read.table('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/fluoroprobe/Sep25.txt', skip=2, stringsAsFactors = F)
 phyto <- rbind(tp0,tp1,tp2,tp3,tp4,tp5,tp6,tp7,tp8,tp9,tp10,tp11,tp12)
 rm(tp0,tp1,tp2,tp3,tp4,tp5,tp6,tp7,tp8,tp9,tp10,tp11,tp12)
 
@@ -78,7 +81,7 @@ phyto %<>% select(pond, week, greens:total)
 
 ## zooplankton
 
-zoops_tot <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zooplankton/total_counts_undergrads.csv', stringsAsFactors = F)
+zoops_tot <- read.csv('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/zooplankton/total_counts_undergrads.csv', stringsAsFactors = F)
 zoops_tot$Chidorus[is.na(zoops_tot$Chidorus)] <- 0
 zoops_tot <- zoops_tot %>% rename('sample' = Date) %>%
   filter(Pond %!in% to.rm) %>%
@@ -92,7 +95,7 @@ zoops_tot <- zoops_tot %>% rename('sample' = Date) %>%
   rename('zd' = density.indperL)
 zoops_tot$date <- as.Date(zoops_tot$date, format = '%d_%m_%Y')
 
-zoops_com <- read_xlsx('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/zooplankton/community_composition_Lynne.xlsx') %>% 
+zoops_com <- read_xlsx('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/zooplankton/community_composition_Lynne.xlsx') %>% 
   select(pond:density.indperL) %>% as.data.frame
 zoops_com[is.na(zoops_com)] <- 0
 zoops2 <- zoops_com %>% filter(pond %!in% to.rm) %>%
@@ -115,7 +118,7 @@ zoops_com <- filter(zoops_com, date == '27.07.17', pond %!in% to.rm) %>%
 
 ## metabolism
 
-metab <- read_xlsx('/Users/vincentfugere/Google Drive/Recherche/LEAP Postdoc/2017/data/LEAP2017_metabolism.xlsx') %>%
+metab <- read_xlsx('/Users/vincentfugere/Google Drive/Recherche/LEAP/leap2017/data/LEAP2017_metabolism.xlsx') %>%
   unite(pond, sub.array, pond.number, sep='', remove=T) %>%
   unite(date, month.day1, date.day1, sep='_') %>%
   filter(pond %!in% to.rm) %>% filter(pond != 'NA')
@@ -179,6 +182,7 @@ data <- treat %>% select(pond.ID:pH.var) %>%
 data <- select(data, pond.ID,week,MC.ID:pH.var,depth:NEP)
 
 colnames(data)[c(1,3,4,5,7,8)] <- c('pond','MC','disp','pH.trt','MC.pH','str')
+
 
 #### Optional filters ####
 
